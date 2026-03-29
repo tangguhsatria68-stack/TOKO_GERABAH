@@ -1,0 +1,146 @@
+/* Profile Page Styles */
+
+.profile-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.profile-content {
+  flex: 1;
+  padding: 30px;
+  margin-left: 250px;
+}
+
+.profile-content h1 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.profile-card {
+  background: white;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.info-group {
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.info-group label {
+  display: block;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-group p {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-badge.role-admin {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.role-badge.role-user {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 15px;
+  border-top: 2px solid #f0f0f0;
+  padding-top: 20px;
+}
+
+.btn-edit,
+.btn-logout {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-edit {
+  background-color: #d2691e;
+  color: white;
+  flex: 1;
+}
+
+.btn-edit:hover {
+  background-color: #a0522d;
+}
+
+.btn-logout {
+  background-color: #dc3545;
+  color: white;
+  flex: 1;
+}
+
+.btn-logout:hover {
+  background-color: #c82333;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 20px;
+  font-size: 16px;
+  color: #666;
+}
+
+.error {
+  color: #dc3545;
+  background-color: #f8d7da;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .profile-content {
+    margin-left: 0;
+    padding: 15px;
+  }
+
+  .profile-info {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+
+  .btn-edit,
+  .btn-logout {
+    flex: auto;
+  }
+}
