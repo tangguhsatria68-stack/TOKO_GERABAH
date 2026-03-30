@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import ShoppingCart from './pages/ShoppingCart';
 import OrderHistory from './pages/OrderHistory';
 import Profile from './pages/Profile';
@@ -12,6 +13,11 @@ import './App.css';
 function App() {
   const isAuthenticated = () => {
     return !!localStorage.getItem('token');
+  };
+
+  const isAdmin = () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user.role === 'admin';
   };
 
   return (
@@ -23,6 +29,10 @@ function App() {
           <Route 
             path="/dashboard" 
             element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/admin" 
+            element={isAdmin() ? <AdminDashboard /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/shopping-cart" 

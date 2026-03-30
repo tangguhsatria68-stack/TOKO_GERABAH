@@ -77,7 +77,7 @@ export default function Login() {
 
         <div className="login-footer">
           <p>Belum punya akun? <Link to="/register">Daftar di sini</Link></p>
-          <p className="demo-login">Demo: admin / 123</p>
+          <p className="demo-login">Demo: admin / 12345678</p>
         </div>
       </div>
     </div>
