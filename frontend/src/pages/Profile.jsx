@@ -44,6 +44,12 @@ export default function Profile() {
     navigate('/login');
   };
 
+  const handleAdminPanel = () => {
+    navigate('/admin');
+  };
+
+  const isAdmin = profile && profile.role === 'admin';
+
   return (
     <div className="profile-page">
       <Sidebar />
@@ -89,6 +95,11 @@ export default function Profile() {
 
             <div className="profile-actions">
               <button className="btn-edit">✏️ Edit Profil</button>
+              {isAdmin && (
+                <button className="btn-admin" onClick={handleAdminPanel}>
+                  ⚙️ Admin Panel
+                </button>
+              )}
               <button className="btn-logout" onClick={handleLogout}>
                 🚪 Logout
               </button>

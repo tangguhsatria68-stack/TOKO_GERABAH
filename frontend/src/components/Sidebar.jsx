@@ -35,6 +35,11 @@ export default function Sidebar() {
         <Link to="/profile" className="nav-item">
           <span>👤</span> Profil
         </Link>
+        {user.role === 'admin' && (
+          <Link to="/admin" className="nav-item admin-link">
+            <span>⚙️</span> Admin Panel
+          </Link>
+        )}
       </nav>
 
       <div className="sidebar-footer">
