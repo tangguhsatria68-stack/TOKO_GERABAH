@@ -610,6 +610,42 @@ app.post('/api/products', verifyToken, async(req, res) => {
 /**
  * @swagger
  * /api/products/{id}:
+ *   get:
+ *     summary: Ambil detail produk berdasarkan ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Detail produk
+ */
+app.get('/api/products/:id', async(req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { data: product, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !product) {
+            return res.status(404).json({ message: 'Produk tidak ditemukan' });
+        }
+
+        res.json(product);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error mengambil produk', error: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/products/{id}:
  *   put:
  *     summary: Update produk (admin only)
  *     tags: [Products]

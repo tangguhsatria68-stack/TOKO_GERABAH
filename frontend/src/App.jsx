@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import ProductDetail from './pages/ProductDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import ShoppingCart from './pages/ShoppingCart';
 import OrderHistory from './pages/OrderHistory';
@@ -29,6 +30,10 @@ function App() {
           <Route 
             path="/dashboard" 
             element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/product/:id" 
+            element={isAuthenticated() ? <ProductDetail /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/admin" 

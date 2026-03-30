@@ -19,6 +19,7 @@ export default function AdminDashboard() {
     color: '',
     price: 0,
     category: '',
+    image: '',
     stock: 0,
     discount: 0
   });
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
       color: product.color,
       price: product.price,
       category: product.category,
+      image: product.image || '',
       stock: product.stock,
       discount: product.discount || 0
     });
@@ -142,6 +144,7 @@ export default function AdminDashboard() {
       color: '',
       price: 0,
       category: '',
+      image: '',
       stock: 0,
       discount: 0
     });
@@ -198,6 +201,20 @@ export default function AdminDashboard() {
                     onChange={handleInputChange}
                     rows="3"
                   />
+
+                  <input
+                    type="text"
+                    name="image"
+                    placeholder="URL Foto Produk (dari Google Images)"
+                    value={formData.image}
+                    onChange={handleInputChange}
+                  />
+
+                  {formData.image && (
+                    <div className="image-preview">
+                      <img src={formData.image} alt="Preview" onError={(e) => e.target.src = '/placeholder.jpg'} />
+                    </div>
+                  )}
 
                   <div className="form-row">
                     <input
@@ -278,6 +295,7 @@ export default function AdminDashboard() {
                     <table>
                       <thead>
                         <tr>
+                          <th>Foto</th>
                           <th>ID</th>
                           <th>Nama</th>
                           <th>Harga</th>
@@ -289,6 +307,13 @@ export default function AdminDashboard() {
                       <tbody>
                         {products.map(product => (
                           <tr key={product.id}>
+                            <td className="img-cell">
+                              <img 
+                                src={product.image || '/placeholder.jpg'} 
+                                alt={product.name}
+                                onError={(e) => e.target.src = '/placeholder.jpg'}
+                              />
+                            </td>
                             <td>#{product.id}</td>
                             <td><strong>{product.name}</strong></td>
                             <td>Rp {product.price.toLocaleString()}</td>

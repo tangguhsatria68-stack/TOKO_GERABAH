@@ -39,6 +39,10 @@ export default function Dashboard() {
     alert('Produk ditambahkan ke keranjang!');
   };
 
+  const handleViewDetail = (productId) => {
+    navigate(`/product/${productId}`);
+  };
+
   return (
     <div className="dashboard">
       <Sidebar />
@@ -60,14 +64,7 @@ export default function Dashboard() {
               {products.map(product => (
                 <div key={product.id} className="product-card">
                   <div className="product-image">
-                    <img 
-                      src={product.image || '/placeholder.jpg'} 
-                      alt={product.name}
-                      onError={(e) => {
-                        e.target.src = '/placeholder.jpg';
-                      }}
-                      loading="lazy"
-                    />
+                    <img src={product.image || '/placeholder.jpg'} alt={product.name} />
                     {product.discount > 0 && (
                       <span className="discount-badge">-{product.discount}%</span>
                     )}
@@ -92,12 +89,20 @@ export default function Dashboard() {
                           <span className="original-price">Rp {product.price.toLocaleString()}</span>
                         )}
                       </div>
-                      <button 
-                        className="btn-add-cart"
-                        onClick={() => handleAddToCart(product)}
-                      >
-                        Tambah Keranjang
-                      </button>
+                      <div className="button-group">
+                        <button 
+                          className="btn-detail"
+                          onClick={() => handleViewDetail(product.id)}
+                        >
+                          👁️ Detail
+                        </button>
+                        <button 
+                          className="btn-add-cart"
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          🛒 + Keranjang
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

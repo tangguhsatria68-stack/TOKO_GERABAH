@@ -74,13 +74,13 @@ VALUES (
 -- INSERT PRODUK
 -- ===============================
 INSERT INTO products 
-(name, description, material, size, color, price, category, image, rating, reviews, discount, stock)
+(name, description, material, size, color, price, category, rating, reviews, discount, stock)
 VALUES
-('Vas Keramik Unik', 'Vas keramik handmade desain tradisional', 'Keramik', '30x25 cm', 'Merah Maroon', 150000, 'Dekorasi', 'https://images.unsplash.com/photo-1527789050526-3df378b6dba7?w=500&h=500&fit=crop', 4.5, 12, 10, 15),
-('Piring Gerabah Batik', 'Piring motif batik khas Jawa', 'Tanah Liat', '25 cm', 'Coklat Natural', 85000, 'Peralatan Makan', 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=500&h=500&fit=crop', 4.2, 8, 0, 20),
-('Kendi Tradisional', 'Kendi klasik untuk air minum', 'Tanah Liat', '35x20 cm', 'Merah', 120000, 'Dekorasi', 'https://images.unsplash.com/photo-1578500494198-246f612d03b3?w=500&h=500&fit=crop', 4.8, 18, 15, 10),
-('Mangkuk Gerabah Besar', 'Mangkuk besar untuk saji makanan', 'Gerabah', '30 cm', 'Biru Celadon', 95000, 'Peralatan Makan', 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&h=500&fit=crop', 4.3, 10, 5, 25),
-('Guci Penyimpan Beras', 'Guci tradisional penyimpan beras', 'Tanah Liat', '50 cm', 'Coklat', 250000, 'Penyimpanan', 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=500&h=500&fit=crop', 4.6, 14, 20, 8),
-('Pot Tanaman Keramik', 'Pot bunga dengan drainase', 'Keramik', '20x20 cm', 'Kuning Mustard', 65000, 'Dekorasi', 'https://images.unsplash.com/photo-1578500494198-246f612d03b3?w=500&h=500&fit=crop', 4.1, 6, 0, 30),
-('Ceret Teh Gerabah', 'Ceret teh tradisional berkualitas', 'Gerabah', '15 cm', 'Hitam', 105000, 'Peralatan Minum', 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&h=500&fit=crop', 4.4, 11, 10, 16),
-('Hiasan Dinding Gerabah', 'Hiasan dinding motif abstrak', 'Gerabah', '40x30 cm', 'Beige', 175000, 'Dekorasi', 'https://images.unsplash.com/photo-1527789050526-3df378b6dba7?w=500&h=500&fit=crop', 4.7, 16, 15, 12);
+('Vas Keramik Unik', 'Vas keramik handmade desain tradisional', 'Keramik', '30x25 cm', 'Merah Maroon', 150000, 'Dekorasi', 4.5, 12, 10, 15),
+('Piring Gerabah Batik', 'Piring motif batik khas Jawa', 'Tanah Liat', '25 cm', 'Coklat Natural', 85000, 'Peralatan Makan', 4.2, 8, 0, 20),
+('Kendi Tradisional', 'Kendi klasik untuk air minum', 'Tanah Liat', '35x20 cm', 'Merah', 120000, 'Dekorasi', 4.8, 18, 15, 10),
+('Mangkuk Gerabah Besar', 'Mangkuk besar untuk saji makanan', 'Gerabah', '30 cm', 'Biru Celadon', 95000, 'Peralatan Makan', 4.3, 10, 5, 25),
+('Guci Penyimpan Beras', 'Guci tradisional penyimpan beras', 'Tanah Liat', '50 cm', 'Coklat', 250000, 'Penyimpanan', 4.6, 14, 20, 8),
+('Pot Tanaman Keramik', 'Pot bunga dengan drainase', 'Keramik', '20x20 cm', 'Kuning Mustard', 65000, 'Dekorasi', 4.1, 6, 0, 30),
+('Ceret Teh Gerabah', 'Ceret teh tradisional berkualitas', 'Gerabah', '15 cm', 'Hitam', 105000, 'Peralatan Minum', 4.4, 11, 10, 16),
+('Hiasan Dinding Gerabah', 'Hiasan dinding motif abstrak', 'Gerabah', '40x30 cm', 'Beige', 175000, 'Dekorasi', 4.7, 16, 15, 12);
