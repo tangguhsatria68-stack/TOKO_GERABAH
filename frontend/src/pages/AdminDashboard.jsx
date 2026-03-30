@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import '../pages/AdminDashboard.css';
@@ -28,17 +28,8 @@ export default function AdminDashboard() {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Check admin permission
-  useEffect(() => {
-    if (!token || user.role !== 'admin') {
-      navigate('/login');
-      return;
-    }
-    loadData();
-  }, [token, user.role, navigate]);
-
   // Load data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'products') {
@@ -57,7 +48,16 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, token]);
+
+  // Check admin permission
+  useEffect(() => {
+    if (!token || user.role !== 'admin') {
+      navigate('/login');
+      return;
+    }
+    loadData();
+  }, [token, user.role, navigate, loadData]);
 
   // Handle input change
   const handleInputChange = (e) => {

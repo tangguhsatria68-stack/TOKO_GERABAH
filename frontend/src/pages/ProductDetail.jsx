@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CartContext } from '../context/CartContext';
 import Sidebar from '../components/Sidebar';
@@ -13,16 +13,7 @@ export default function ProductDetail() {
   const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    fetchProduct();
-  }, [id, navigate]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       const response = await fetch(`/api/products/${id}`);
       if (!response.ok) throw new Error('Produk tidak ditemukan');
@@ -33,7 +24,16 @@ export default function ProductDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchProduct();
+  }, [id, navigate, fetchProduct]);
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
