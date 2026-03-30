@@ -2,9 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const { supabase, supabaseAdmin } = require('./supabase');
+const https = require('https');
 
 dotenv.config();
 
@@ -38,12 +40,25 @@ const swaggerOptions = {
         info: {
             title: 'Toko Gerabah API',
             version: '1.0.0',
-            description: 'API untuk Toko Gerabah Online'
+            description: 'API untuk Toko Gerabah Online',
+            contact: {
+                name: 'Support',
+                email: 'support@tokogerabah.com'
+            }
         },
         servers: [{
-            url: `http://localhost:${process.env.PORT || 7777}`,
+            url: `http://localhost:${process.env.PORT || 3303}`,
             description: 'Development Server'
-        }]
+        }],
+        components: {
+            securitySchemes: {
+                BearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        }
     },
     apis: ['./server.js']
 };
@@ -51,7 +66,301 @@ const swaggerOptions = {
 const swaggerSpecs = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
+// ===== DATABASE AUTO-INITIALIZATION =====
+async function initializeDatabase() {
+    try {
+        console.log('🔄 Checking database tables...');
+
+        // Try to query users table to check if it exists
+        const { data, error } = await supabase.from('users').select('count').limit(1);
+
+        if (!error) {
+            console.log('✅ Database tables already exist');
+            return true;
+        }
+
+        if (!error.message.includes('Could not find')) {
+            console.log('⚠️  Database check returned:', error.message);
+            return false;
+        }
+
+        // Tables don't exist, try to create via Supabase REST API
+        console.log('📡 Creating database tables via Supabase API...');
+
+        const createTablesSQL = `
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    role VARCHAR(20) DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    material VARCHAR(100),
+    size VARCHAR(50),
+    color VARCHAR(50),
+    price NUMERIC(10, 2) NOT NULL,
+    category VARCHAR(100),
+    image TEXT,
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    items JSONB NOT NULL,
+    total NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+        `;
+
+        // Use Supabase Admin SDK to run SQL - won't work, so we'll just warn user
+        console.log('⚠️  Tables not found. Setup required at: http://localhost:3303/api/setup');
+        return false;
+
+    } catch (error) {
+        console.error('⚠️  Database initialization check failed:', error.message);
+        return false;
+    }
+}
+
+// Call during startup
+initializeDatabase().catch(console.error);
+
+// ===== DATABASE SETUP INSTRUCTION =====
+app.get('/api/setup', (req, res) => {
+    res.json({
+        message: 'TOKO GERABAH - Database Setup Required',
+        instruction: 'Run the SQL below in Supabase SQL Editor',
+        sql: `
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    role VARCHAR(20) DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    material VARCHAR(100),
+    size VARCHAR(50),
+    color VARCHAR(50),
+    price NUMERIC(10, 2) NOT NULL,
+    category VARCHAR(100),
+    image TEXT,
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    items JSONB NOT NULL,
+    total NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+        `
+    });
+});
+
+// ===== DATABASE INITIALIZATION ENDPOINT =====
+app.post('/api/db-init', async(req, res) => {
+    try {
+        console.log('[DB-INIT] Starting database initialization...');
+
+        // Test tables existence by trying to query them
+        const { error: usersError } = await supabase
+            .from('users')
+            .select('count')
+            .limit(1);
+
+        const { error: productsError } = await supabase
+            .from('products')
+            .select('count')
+            .limit(1);
+
+        const { error: ordersError } = await supabase
+            .from('orders')
+            .select('count')
+            .limit(1);
+
+        if (!usersError && !productsError && !ordersError) {
+            console.log('[DB-INIT] All tables exist!');
+            return res.json({ message: 'Database already initialized', status: 'ok' });
+        }
+
+        // If tables don't exist, return SQL for manual creation
+        const setupSql = `
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    role VARCHAR(20) DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Products Table
+CREATE TABLE IF NOT EXISTS products (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    material VARCHAR(100),
+    size VARCHAR(50),
+    color VARCHAR(50),
+    price NUMERIC(10, 2) NOT NULL,
+    category VARCHAR(100),
+    image TEXT,
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Orders Table
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    items JSONB NOT NULL,
+    total NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create Indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);`;
+
+        console.log('[DB-INIT] Tables need to be created manually');
+        res.status(202).json({
+            message: 'Database tables need manual setup',
+            status: 'needs_setup',
+            instruction: 'Run the SQL below in Supabase SQL Editor',
+            url: 'https://app.supabase.com/project/cwghftlxhcxrdnhltzmh/editor/sql',
+            sql: setupSql
+        });
+    } catch (error) {
+        console.error('[DB-INIT] Error:', error);
+        res.status(500).json({ message: 'Database initialization error', error: error.message });
+    }
+});
+
 // ===== AUTHENTICATION ENDPOINTS =====
+
+// Reset Admin (clear old admin for fresh creation)
+app.get('/api/reset-admin', async(req, res) => {
+    try {
+        console.log('[RESET-ADMIN] Deleting old admin user...');
+
+        const { data, error } = await supabase
+            .from('users')
+            .delete()
+            .eq('username', 'admin');
+
+        if (error) {
+            console.error('[RESET-ADMIN] Error:', error);
+            return res.status(500).json({ message: 'Error deleting admin', error: error.message });
+        }
+
+        res.json({ message: 'Admin berhasil direset', deleted: data });
+    } catch (error) {
+        console.error('[RESET-ADMIN] Catch error:', error);
+        res.status(500).json({ message: 'Error resetting admin', error: error.message });
+    }
+});
+
+// Create Test Admin (for initial setup)
+app.get('/api/create-test-admin', async(req, res) => {
+    try {
+        console.log('[CREATE-TEST-ADMIN] Creating test admin user...');
+
+        const hashedPassword = await bcrypt.hash('12345678', 10);
+
+        // Insert directly into users table via direct Supabase insert
+        const { data, error } = await supabase
+            .from('users')
+            .insert({
+                username: 'admin',
+                email: 'admin@gerabah.local',
+                password: hashedPassword,
+                phone: '08123456789',
+                address: 'Jakarta, Indonesia',
+                role: 'admin'
+            })
+            .select();
+
+        if (error) {
+            if (error.message.includes('users') && error.message.includes('does not exist')) {
+                console.error('[CREATE-TEST-ADMIN] Error: Tables not created yet');
+                return res.status(500).json({
+                    message: 'Tabel database belum dibuat',
+                    action: 'Run SQL di http://localhost:3303/api/setup',
+                    manualSetup: 'https://app.supabase.com -> SQL Editor -> paste SQL',
+                    error: error.message
+                });
+            }
+            console.error('[CREATE-TEST-ADMIN] Insert error:', error);
+            return res.status(400).json({ message: 'Error creating admin', error: error.message });
+        }
+
+        console.log('[CREATE-TEST-ADMIN] Admin created successfully!');
+        res.json({
+            message: 'Test admin berhasil dibuat!',
+            credentials: {
+                username: 'admin',
+                password: '12345678',
+                email: 'admin@gerabah.local',
+                role: 'admin'
+            },
+            nextStep: 'Test login dengan credentials di atas'
+        });
+    } catch (error) {
+        console.error('[CREATE-TEST-ADMIN] Error:', error);
+        res.status(500).json({ message: 'Error creating test admin', error: error.message });
+    }
+});
 
 /**
  * @swagger
@@ -93,6 +402,7 @@ app.post('/api/register', async(req, res) => {
 
         if (checkError) {
             console.error('[REGISTER] Error checking existing user:', checkError);
+            // Assume table doesn't exist yet, continue
         }
 
         if (existingUsers && existingUsers.length > 0) {
@@ -100,31 +410,19 @@ app.post('/api/register', async(req, res) => {
             return res.status(400).json({ message: 'Username atau Email sudah terdaftar' });
         }
 
-        // Create user in Supabase Auth
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true
-        });
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        if (authError) {
-            console.error('[REGISTER] Auth creation error:', authError);
-            return res.status(400).json({ message: 'Error registrasi', error: authError.message });
-        }
-
-        console.log('[REGISTER] Auth user created:', authData.user.id);
-
-        // Insert user profile to database
+        // Insert user directly to database (id auto-generated by Supabase)
         const { data: newUser, error: insertError } = await supabase
             .from('users')
             .insert({
-                id: authData.user.id,
                 username,
                 email,
+                password: hashedPassword,
                 phone: phone || null,
                 address: address || null,
-                role: 'customer',
-                created_at: new Date().toISOString()
+                role: 'user'
             })
             .select();
 
@@ -172,7 +470,7 @@ app.post('/api/login', async(req, res) => {
         // Get user by username
         const { data: users, error: queryError } = await supabase
             .from('users')
-            .select('id, username, email, role')
+            .select('id, username, email, password, role')
             .eq('username', username);
 
         if (queryError) {
@@ -188,20 +486,17 @@ app.post('/api/login', async(req, res) => {
         const user = users[0];
         console.log('[LOGIN] User found:', { id: user.id, email: user.email });
 
-        // Sign in using Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: user.email,
-            password
-        });
+        // Compare password with stored hash
+        const passwordMatch = await bcrypt.compare(password, user.password);
 
-        if (authError) {
-            console.error('[LOGIN] Auth error:', authError);
+        if (!passwordMatch) {
+            console.log('[LOGIN] Password mismatch for user:', username);
             return res.status(401).json({ message: 'Username atau password salah' });
         }
 
-        console.log('[LOGIN] Auth successful for:', username);
+        console.log('[LOGIN] Password verified for:', username);
 
-        // Generate JWT token for backend use
+        // Generate JWT token
         const token = jwt.sign({ userId: user.id, role: user.role },
             process.env.JWT_SECRET || 'S3CR3T_K3Y', { expiresIn: '24h' }
         );
@@ -544,6 +839,156 @@ app.get('/api/users', verifyToken, async(req, res) => {
     }
 });
 
+// Database Setup Endpoint
+app.get('/api/db-setup', async(req, res) => {
+    try {
+        console.log('[DB-SETUP] Starting database initialization...');
+
+        // SQL to create all tables
+        const setupSQL = `
+        DROP TABLE IF EXISTS orders CASCADE;
+        DROP TABLE IF EXISTS products CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+        
+        CREATE TABLE users (
+            id TEXT PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            email VARCHAR(100) UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            phone VARCHAR(20),
+            address TEXT,
+            role VARCHAR(20) DEFAULT 'customer',
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE products (
+            id BIGSERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            material VARCHAR(100),
+            size VARCHAR(50),
+            color VARCHAR(50),
+            price NUMERIC(10, 2) NOT NULL,
+            category VARCHAR(100),
+            image TEXT,
+            stock INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE orders (
+            id BIGSERIAL PRIMARY KEY,
+            order_number VARCHAR(50) UNIQUE NOT NULL,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            items JSONB NOT NULL,
+            total NUMERIC(10, 2) NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE INDEX idx_users_email ON users(email);
+        CREATE INDEX idx_users_username ON users(username);
+        CREATE INDEX idx_products_category ON products(category);
+        CREATE INDEX idx_orders_user_id ON orders(user_id);
+        `;
+
+        // Execute each statement separately
+        const statements = setupSQL.split(';').filter(s => s.trim());
+
+        for (const statement of statements) {
+            const trimmed = statement.trim();
+            if (!trimmed) continue;
+
+            console.log('[DB-SETUP] Executing:', trimmed.substring(0, 50) + '...');
+            const { data, error } = await supabase.rpc('execute_sql', { sql: trimmed });
+
+            if (error && !error.message.includes('does not exist')) {
+                console.error('[DB-SETUP] Error:', error);
+            }
+        }
+
+        console.log('[DB-SETUP] Database initialization completed!');
+        res.json({
+            message: 'Database setup berhasil',
+            note: 'Tables users, products, orders sudah dibuat. Silakan register dan login.'
+        });
+    } catch (error) {
+        console.error('[DB-SETUP] Error:', error);
+        res.json({
+            message: 'Gagal auto-setup via RPC. Jalankan SQL manual di Supabase SQL Editor',
+            instruction: 'Buka Supabase Dashboard → SQL Editor → paste SQL dari endpoint /api/setup',
+            error: error.message,
+            url: 'https://app.supabase.com'
+        });
+    }
+});
+
+// Setup Info Endpoint
+app.get('/api/setup', (req, res) => {
+    const setupSQL = `-- Run this in Supabase SQL Editor
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    role VARCHAR(20) DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE products (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    material VARCHAR(100),
+    size VARCHAR(50),
+    color VARCHAR(50),
+    price NUMERIC(10, 2) NOT NULL,
+    category VARCHAR(100),
+    image TEXT,
+    stock INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    items JSONB NOT NULL,
+    total NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_products_category ON products(category);
+CREATE INDEX idx_orders_user_id ON orders(user_id);`;
+
+    res.json({
+        message: 'TOKO GERABAH - Database Setup Required',
+        instruction: 'Run the SQL below in Supabase SQL Editor',
+        sql: setupSQL,
+        steps: [
+            '1. Go to https://app.supabase.com',
+            '2. Select project: cwghftlxhcxrdnhltzmh',
+            '3. Go to SQL Editor',
+            '4. Paste the SQL above and execute',
+            '5. Then test register at POST /api/register'
+        ]
+    });
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
     res.json({ message: 'Server Toko Gerabah berjalan dengan baik' });
@@ -561,7 +1006,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 7777;
+const PORT = process.env.PORT || 3303;
 app.listen(PORT, () => {
     console.log(`✅ Server Toko Gerabah berjalan di http://localhost:${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
