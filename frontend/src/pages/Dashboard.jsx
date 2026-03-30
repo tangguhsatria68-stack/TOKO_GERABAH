@@ -60,7 +60,14 @@ export default function Dashboard() {
               {products.map(product => (
                 <div key={product.id} className="product-card">
                   <div className="product-image">
-                    <img src={product.image || '/placeholder.jpg'} alt={product.name} />
+                    <img 
+                      src={product.image || '/placeholder.jpg'} 
+                      alt={product.name}
+                      onError={(e) => {
+                        e.target.src = '/placeholder.jpg';
+                      }}
+                      loading="lazy"
+                    />
                     {product.discount > 0 && (
                       <span className="discount-badge">-{product.discount}%</span>
                     )}
