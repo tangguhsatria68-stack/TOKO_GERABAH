@@ -32,8 +32,8 @@ fi
 
 echo ""
 echo "[INFO] Menjalankan Backend Server..."
-echo "[INFO] Akses di http://localhost:7777"
-echo "[INFO] API Docs: http://localhost:7777/api-docs"
+echo "[INFO] Akses di http://localhost:3303"
+echo "[INFO] API Docs: http://localhost:3303/api-docs"
 echo "[INFO] Tekan Ctrl+C untuk stop server"
 echo ""
 
